@@ -2,18 +2,25 @@ package session
 
 import (
 	"database/sql"
+	"github.com/xwxb/MyGeeORM/dialect"
 	"github.com/xwxb/MyGeeORM/log"
+	"github.com/xwxb/MyGeeORM/schema"
 	"strings"
 )
 
 type Session struct {
-	db      *sql.DB
-	sql     strings.Builder
-	sqlVars []interface{}
+	db       *sql.DB
+	dialect  dialect.Dialect
+	refTable *schema.Schema // one operation only ref one table
+	sql      strings.Builder
+	sqlVars  []interface{}
 }
 
-func New(db *sql.DB) *Session {
-	return &Session{db: db}
+func New(db *sql.DB, dialect dialect.Dialect) *Session {
+	return &Session{
+		db:      db,
+		dialect: dialect,
+	}
 }
 
 func (s *Session) Clear() {
