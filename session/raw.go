@@ -2,6 +2,7 @@ package session
 
 import (
 	"database/sql"
+	"github.com/xwxb/MyGeeORM/clause"
 	"github.com/xwxb/MyGeeORM/dialect"
 	"github.com/xwxb/MyGeeORM/log"
 	"github.com/xwxb/MyGeeORM/schema"
@@ -12,6 +13,7 @@ type Session struct {
 	db       *sql.DB
 	dialect  dialect.Dialect
 	refTable *schema.Schema // one operation only ref one table
+	clause   clause.Clause
 	sql      strings.Builder
 	sqlVars  []interface{}
 }
