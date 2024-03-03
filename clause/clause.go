@@ -16,6 +16,9 @@ const (
 	LIMIT
 	WHERE
 	ORDERBY
+	UPDATE
+	DELETE
+	COUNT
 )
 
 // Set add a child sql clause to the clause
@@ -29,7 +32,7 @@ func (c *Clause) Set(name Type, vars ...interface{}) {
 	c.sqlVars[name] = vars
 }
 
-// Build to get the sql temp and the vars
+// Build to get the sql template and the vars
 func (c *Clause) Build(orders ...Type) (string, []interface{}) {
 	var sqls []string
 	var vars []interface{}
