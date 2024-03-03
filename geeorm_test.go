@@ -1,7 +1,9 @@
 package geeorm
 
 import (
+	"errors"
 	_ "github.com/mattn/go-sqlite3"
+	"github.com/xwxb/MyGeeORM/session"
 	"testing"
 )
 
@@ -14,7 +16,48 @@ func OpenDB(t *testing.T) *Engine {
 	return engine
 }
 
-func TestNewEngine(t *testing.T) {
+type User struct {
+	Name string `geeorm:"PRIMARY KEY"`
+	Age  int
+}
+
+func TestEngine_Transaction(t *testing.T) {
+	t.Run("rollback", func(t *testing.T) {
+		transactionRollback(t)
+	})
+	t.Run("commit", func(t *testing.T) {
+		transactionCommit(t)
+	})
+}
+
+func transactionRollback(t *testing.T) {
 	engine := OpenDB(t)
 	defer engine.Close()
+	s := engine.NewSession()
+	_ = s.Model(&User{}).DropTable()
+	_, err := engine.Transaction(func(s *session.Session) (result interface{}, err error) {
+		_ = s.Model(&User{}).CreateTable() // mysql当执行到DDL语句时，会隐式的将当前回话的事务进行一次“COMMIT”操作
+		_, err = s.Insert(&User{"Tom", 18})
+		return nil, errors.New("Error")
+	})
+	if err == nil || s.HasTable() {
+		t.Fatal("failed to rollback")
+	}
+}
+
+func transactionCommit(t *testing.T) {
+	engine := OpenDB(t)
+	defer engine.Close()
+	s := engine.NewSession()
+	_ = s.Model(&User{}).DropTable()
+	_, err := engine.Transaction(func(s *session.Session) (result interface{}, err error) {
+		_ = s.Model(&User{}).CreateTable()
+		_, err = s.Insert(&User{"Tom", 18})
+		return
+	})
+	u := &User{}
+	_ = s.First(u)
+	if err != nil || u.Name != "Tom" {
+		t.Fatal("failed to commit")
+	}
 }

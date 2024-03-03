@@ -12,11 +12,22 @@ import (
 type Session struct {
 	db       *sql.DB
 	dialect  dialect.Dialect
+	tx       *sql.Tx
 	refTable *schema.Schema // one operation only ref one table
 	clause   clause.Clause
 	sql      strings.Builder
 	sqlVars  []interface{}
 }
+
+// CommonDB is a minimal function set of db, abstract 2 way to interact with db
+type CommonDB interface {
+	Query(query string, args ...interface{}) (*sql.Rows, error)
+	QueryRow(query string, args ...interface{}) *sql.Row
+	Exec(query string, args ...interface{}) (sql.Result, error)
+}
+
+var _ CommonDB = (*sql.DB)(nil)
+var _ CommonDB = (*sql.Tx)(nil)
 
 func New(db *sql.DB, dialect dialect.Dialect) *Session {
 	return &Session{
@@ -30,7 +41,11 @@ func (s *Session) Clear() {
 	s.sqlVars = nil
 }
 
-func (s *Session) DB() *sql.DB {
+// DB returns tx if a tx begins. otherwise return *sql.DB
+func (s *Session) DB() CommonDB {
+	if s.tx != nil {
+		return s.tx
+	}
 	return s.db
 }
 

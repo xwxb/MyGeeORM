@@ -3,9 +3,8 @@ package geeorm
 import (
 	"database/sql"
 	"github.com/xwxb/MyGeeORM/dialect"
-	"github.com/xwxb/MyGeeORM/session"
-
 	"github.com/xwxb/MyGeeORM/log"
+	"github.com/xwxb/MyGeeORM/session"
 )
 
 type Engine struct {
@@ -44,4 +43,25 @@ func (engine *Engine) Close() {
 		log.Error("Failed to close database")
 	}
 	log.Info("Close database success")
+}
+
+type TxFunc func(*session.Session) (interface{}, error)
+
+func (engine *Engine) Transaction(f TxFunc) (result interface{}, err error) {
+	s := engine.NewSession()
+	if err := s.Begin(); err != nil {
+		return nil, err
+	}
+	defer func() {
+		if p := recover(); p != nil {
+			_ = s.Rollback()
+			panic(p) // re-throw panic after Rollback
+		} else if err != nil {
+			_ = s.Rollback() // err is non-nil; don't change it
+		} else {
+			err = s.Commit() // err is nil; if Commit returns error update err
+		}
+	}()
+
+	return f(s)
 }
